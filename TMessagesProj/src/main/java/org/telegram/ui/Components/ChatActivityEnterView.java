@@ -2929,7 +2929,7 @@ public class ChatActivityEnterView extends FrameLayout implements NotificationCe
             sendPopupLayout.setShowedFromBotton(false);
 
             for (int a = 0; a < 3; a++) {
-                if (a == 1 && (UserObject.isUserSelf(user) || slowModeTimer > 0 && !isInScheduleMode())) {
+                if (a >= 1 && (UserObject.isUserSelf(user) || slowModeTimer > 0 && !isInScheduleMode())) {
                     continue;
                 }
                 int num = a;
