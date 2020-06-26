@@ -2943,7 +2943,7 @@ public class ChatActivityEnterView extends FrameLayout implements NotificationCe
                 } else if (num == 1) {
                     cell.setTextAndIcon(LocaleController.getString("SendWithoutSound", R.string.SendWithoutSound), R.drawable.input_notify_off);
                 } else if (num == 2) {
-                    cell.setTextAndIcon(LocaleController.getString("SendWithEncryption", R.string.SendWithEncryption), R.drawable.msg_start_secret);
+                    cell.setTextAndIcon(LocaleController.getString("SendWithEncryption", R.string.SendWithEncryption), R.drawable.lock_close);
                 }
                 cell.setMinimumWidth(AndroidUtilities.dp(196));
                 sendPopupLayout.addView(cell, LayoutHelper.createFrame(LayoutHelper.MATCH_PARENT, 48, LocaleController.isRTL ? Gravity.RIGHT : Gravity.LEFT, 0, 48 * a, 0, 0));
