@@ -127,42 +127,69 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Locale;
 
+import encryption.StringCoder;
+
 public class ChatActivityEnterView extends FrameLayout implements NotificationCenter.NotificationCenterDelegate, SizeNotifierFrameLayout.SizeNotifierFrameLayoutDelegate, StickersAlert.StickersAlertDelegate {
 
     public interface ChatActivityEnterViewDelegate {
         void onMessageSend(CharSequence message, boolean notify, int scheduleDate);
+
         void needSendTyping();
+
         void onTextChanged(CharSequence text, boolean bigChange);
+
         void onTextSelectionChanged(int start, int end);
+
         void onTextSpansChanged(CharSequence text);
+
         void onAttachButtonHidden();
+
         void onAttachButtonShow();
+
         void onWindowSizeChanged(int size);
+
         void onStickersTab(boolean opened);
+
         void onMessageEditEnd(boolean loading);
+
         void didPressAttachButton();
+
         void needStartRecordVideo(int state, boolean notify, int scheduleDate);
+
         void needChangeVideoPreviewState(int state, float seekProgress);
+
         void onSwitchRecordMode(boolean video);
+
         void onPreAudioVideoRecord();
+
         void needStartRecordAudio(int state);
+
         void needShowMediaBanHint();
+
         void onStickersExpandedChange();
+
         void onUpdateSlowModeButton(View button, boolean show, CharSequence time);
+
         default void scrollToSendingMessage() {
 
         }
+
         default void openScheduledMessages() {
 
         }
+
         default boolean hasScheduledMessages() {
             return true;
         }
+
         void onSendLongClick();
+
         void onAudioVideoInterfaceUpdated();
+
         default void bottomPanelTranslationYChanged(float translation) {
 
         }
+
         default void prepareMessageSending() {
 
         }
@@ -176,6 +203,7 @@ public class ChatActivityEnterView extends FrameLayout implements NotificationCe
     private final static int RECORD_STATE_CANCEL_BY_GESTURE = 5;
 
 
+    private StringCoder stringCoder;
     private int currentAccount = UserConfig.selectedAccount;
     private AccountInstance accountInstance = AccountInstance.getInstance(UserConfig.selectedAccount);
 
@@ -612,6 +640,7 @@ public class ChatActivityEnterView extends FrameLayout implements NotificationCe
             drawable.stop();
             invalidate();
         }
+
         @Override
         protected void onMeasure(int widthMeasureSpec, int heightMeasureSpec) {
             super.onMeasure(widthMeasureSpec, heightMeasureSpec);
@@ -934,7 +963,7 @@ public class ChatActivityEnterView extends FrameLayout implements NotificationCe
             tooltipLayout = new StaticLayout(tooltipMessage, tooltipPaint, AndroidUtilities.dp(220), Layout.Alignment.ALIGN_NORMAL, 1.0f, 0.0f, true);
             int n = tooltipLayout.getLineCount();
             tooltipWidth = 0;
-            for (int i = 0 ; i < n; i++) {
+            for (int i = 0; i < n; i++) {
                 float w = tooltipLayout.getLineWidth(i);
                 if (w > tooltipWidth) {
                     tooltipWidth = w;
@@ -1458,7 +1487,7 @@ public class ChatActivityEnterView extends FrameLayout implements NotificationCe
 
         public void showWaves(boolean b, boolean animated) {
             if (!animated) {
-                wavesEnterAnimation = b? 1f : 0.5f;
+                wavesEnterAnimation = b ? 1f : 0.5f;
             }
             showWaves = b;
         }
@@ -1810,6 +1839,8 @@ public class ChatActivityEnterView extends FrameLayout implements NotificationCe
     @SuppressLint("ClickableViewAccessibility")
     public ChatActivityEnterView(Activity context, SizeNotifierFrameLayout parent, ChatActivity fragment, final boolean isChat) {
         super(context);
+
+        stringCoder = new StringCoder();
 
         smoothKeyboard = isChat && SharedConfig.smoothKeyboard;
         dotPaint = new Paint(Paint.ANTI_ALIAS_FLAG);
@@ -2836,7 +2867,7 @@ public class ChatActivityEnterView extends FrameLayout implements NotificationCe
     protected boolean drawChild(Canvas canvas, View child, long drawingTime) {
         if (child == topView) {
             canvas.save();
-            canvas.clipRect(0, animatedTop, getMeasuredWidth(),  animatedTop + child.getLayoutParams().height + AndroidUtilities.dp(2));
+            canvas.clipRect(0, animatedTop, getMeasuredWidth(), animatedTop + child.getLayoutParams().height + AndroidUtilities.dp(2));
         }
         boolean result = super.drawChild(canvas, child, drawingTime);
         if (child == topView) {
@@ -2897,7 +2928,7 @@ public class ChatActivityEnterView extends FrameLayout implements NotificationCe
             });
             sendPopupLayout.setShowedFromBotton(false);
 
-            for (int a = 0; a < 2; a++) {
+            for (int a = 0; a < 3; a++) {
                 if (a == 1 && (UserObject.isUserSelf(user) || slowModeTimer > 0 && !isInScheduleMode())) {
                     continue;
                 }
@@ -2911,6 +2942,8 @@ public class ChatActivityEnterView extends FrameLayout implements NotificationCe
                     }
                 } else if (num == 1) {
                     cell.setTextAndIcon(LocaleController.getString("SendWithoutSound", R.string.SendWithoutSound), R.drawable.input_notify_off);
+                } else if (num == 2) {
+                    cell.setTextAndIcon(LocaleController.getString("SendWithEncryption", R.string.SendWithEncryption), R.drawable.msg_start_secret);
                 }
                 cell.setMinimumWidth(AndroidUtilities.dp(196));
                 sendPopupLayout.addView(cell, LayoutHelper.createFrame(LayoutHelper.MATCH_PARENT, 48, LocaleController.isRTL ? Gravity.RIGHT : Gravity.LEFT, 0, 48 * a, 0, 0));
@@ -2922,6 +2955,8 @@ public class ChatActivityEnterView extends FrameLayout implements NotificationCe
                         AlertsCreator.createScheduleDatePickerDialog(parentActivity, parentFragment.getDialogId(), this::sendMessageInternal);
                     } else if (num == 1) {
                         sendMessageInternal(false, 0);
+                    } else if (num == 2) {
+                        sendMessageWithEncryptionInternal(false, 0, true);
                     }
                 });
             }
@@ -3771,7 +3806,7 @@ public class ChatActivityEnterView extends FrameLayout implements NotificationCe
         }
     }
 
-    private void sendMessageInternal(boolean notify, int scheduleDate) {
+    private void sendMessageWithEncryptionInternal(boolean notify, int scheduleDate, boolean encryption) {
         if (slowModeTimer == Integer.MAX_VALUE && !isInScheduleMode()) {
             if (delegate != null) {
                 delegate.scrollToSendingMessage();
@@ -3810,7 +3845,10 @@ public class ChatActivityEnterView extends FrameLayout implements NotificationCe
             checkSendButton(true);
             return;
         }
-        CharSequence message = messageEditText.getText();
+        String message = messageEditText.getText().toString();
+        if (encryption) {
+            message = stringCoder.encode(message);
+        }
         if (parentFragment != null) {
             TLRPC.Chat chat = parentFragment.getCurrentChat();
             if (chat != null && chat.slowmode_enabled && !ChatObject.hasAdminRights(chat)) {
@@ -3834,6 +3872,10 @@ public class ChatActivityEnterView extends FrameLayout implements NotificationCe
                 delegate.onMessageSend(null, notify, scheduleDate);
             }
         }
+    }
+
+    private void sendMessageInternal(boolean notify, int scheduleDate) {
+        sendMessageWithEncryptionInternal(notify, scheduleDate, false);
     }
 
     public void doneEditingMessage() {
@@ -7140,7 +7182,7 @@ public class ChatActivityEnterView extends FrameLayout implements NotificationCe
                 pressed = cancelRect.contains(x, y);
                 if (pressed) {
                     if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
-                        selectableBackground.setHotspot(x,y);
+                        selectableBackground.setHotspot(x, y);
                     }
                     setPressed(true);
                 }
